@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>MealPass</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0c0c0e;--bg2:#141416;--bg3:#1c1c1f;--sur:#222226;
+  --brd:rgba(255,255,255,.07);--txt:#f2f2f4;--mut:#5a5a65;--mut2:#38383f;
+  --grn:#00e676;--gdim:rgba(0,230,118,.11);--gbrd:rgba(0,230,118,.22);
+  --red:#ff453a;--rdim:rgba(255,69,58,.1);--amb:#ffa800;
+  --r:14px;--rs:10px;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,16px);
+  --tbh:56px;--nvh:58px;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif;overscroll-behavior:none}
+
+/* ── TOPBAR ── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(12,12,14,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--brd)}
+.topbar-in{height:calc(var(--st) + var(--tbh));display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px 10px;gap:10px}
+.logo{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:-.02em;flex:1;text-align:center}
+.logo span{color:var(--grn)}
+.icon-btn{width:36px;height:36px;border-radius:10px;background:var(--bg3);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s;font-size:.9rem;position:relative}
+.icon-btn:active{background:var(--sur)}
+.icon-btn.grn{border-color:var(--gbrd);font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;color:var(--grn)}
+.mbtn{flex-direction:column;gap:5px}
+.mbar{width:18px;height:1.5px;background:var(--txt);border-radius:2px;transition:all .25s;transform-origin:center}
+.mbtn.open .mbar:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.mbtn.open .mbar:nth-child(2){opacity:0;transform:scaleX(0)}
+.mbtn.open .mbar:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.ndot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg);display:none}
+.ndot.on{display:block}
+
+/* ── DRAWER ── */
+.dov{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s}
+.dov.open{opacity:1;pointer-events:all}
+.drw{position:fixed;top:0;left:0;bottom:0;z-index:90;width:280px;background:var(--bg2);border-right:1px solid var(--brd);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.drw.open{transform:translateX(0)}
+.drw-head{padding:calc(var(--st) + var(--tbh)) 22px 20px;border-bottom:1px solid var(--brd)}
+.drw-logo{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;margin-bottom:18px}
+.drw-logo span{color:var(--grn)}
+.drw-user{display:flex;align-items:center;gap:12px}
+.dav{width:44px;height:44px;border-radius:12px;background:var(--gdim);border:1px solid var(--gbrd);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:var(--grn);flex-shrink:0}
+.dnm{font-size:.88rem;font-weight:600}
+.dco{font-size:.7rem;color:var(--mut);margin-top:2px}
+.drw-nav{flex:1;padding:14px 12px;overflow-y:auto}
+.dni{display:flex;align-items:center;gap:12px;padding:12px 13px;border-radius:var(--rs);font-size:.88rem;font-weight:500;color:var(--mut);cursor:pointer;transition:all .15s;margin-bottom:2px;user-select:none}
+.dni:active{background:var(--sur);transform:scale(.98)}
+.dni.active{background:var(--sur);color:var(--txt)}
+.dni.active .dnidot{background:var(--grn)}
+.dniico{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.dnidot{width:6px;height:6px;border-radius:50%;background:var(--mut2);margin-left:auto}
+.drw-foot{padding:14px 20px calc(14px + var(--sb));border-top:1px solid var(--brd);font-size:.68rem;color:var(--mut)}
+
+/* ── PAGES ── */
+.pages{padding-top:calc(var(--st) + var(--tbh));padding-bottom:calc(var(--nvh) + var(--sb));min-height:100vh}
+.pg{display:none;padding:14px 14px 8px;animation:fs .22s ease}
+.pg.active{display:block}
+@keyframes fs{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.pghd{margin-bottom:14px}
+.pghd h1{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.pghd p{font-size:.76rem;color:var(--mut);margin-top:3px}
+
+/* ── BOTTOM NAV ── */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(12,12,14,.96);backdrop-filter:blur(20px);border-top:1px solid var(--brd);display:flex;padding-bottom:var(--sb)}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;cursor:pointer;transition:all .15s;user-select:none;min-height:var(--nvh)}
+.bni:active{transform:scale(.9)}
+.bni-ico{font-size:1.1rem;transition:transform .15s}
+.bni-lbl{font-size:.54rem;font-weight:600;color:var(--mut);letter-spacing:.04em;text-transform:uppercase}
+.bni.active .bni-lbl{color:var(--grn)}
+.bni.active .bni-ico{transform:scale(1.1)}
+.bnidot{width:4px;height:4px;border-radius:50%;background:transparent}
+.bni.active .bnidot{background:var(--grn)}
+
+/* ── PAY CARD ── */
+.paycard{background:var(--bg2);border:1px solid var(--gbrd);border-radius:20px;overflow:hidden;margin-bottom:12px}
+.paycard.used{border-color:rgba(255,69,58,.3)}
+.paystripe{height:3px;background:var(--grn)}
+.paycard.used .paystripe{background:var(--red)}
+.payhdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 0}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:50px;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.bg{background:var(--gdim);color:var(--grn);border:1px solid var(--gbrd)}
+.br{background:var(--rdim);color:var(--red);border:1px solid rgba(255,69,58,.25)}
+.bdot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:bl 2s infinite;flex-shrink:0}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* VENUE BUTTON */
+.vbtn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:50px;background:var(--bg3);border:1px solid var(--brd);font-size:.68rem;color:var(--mut);cursor:pointer;transition:all .15s;user-select:none}
+.vbtn:active{background:var(--sur)}
+.vbtn span.vn{color:var(--grn);font-weight:600}
+.varr{font-size:.5rem;transition:transform .2s}
+.vbtn.open .varr{transform:rotate(180deg)}
+
+/* BIG QR */
+.qrwrap{display:flex;flex-direction:column;align-items:center;padding:16px 14px 0}
+.qrbox{width:210px;height:210px;background:#fff;border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 0 0 7px rgba(0,230,118,.08),0 10px 36px rgba(0,0,0,.4)}
+.paycard.used .qrbox{box-shadow:0 0 0 7px rgba(255,69,58,.08),0 10px 36px rgba(0,0,0,.4)}
+.qrbox svg{width:190px;height:190px}
+.qrblur{position:absolute;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:6px;border-radius:20px;text-align:center}
+.qrblur.show{display:flex}
+.qbico{font-size:2.2rem}
+.qbtxt{font-size:.58rem;font-weight:700;color:var(--red);letter-spacing:.08em}
+.qrstat{margin-top:12px;text-align:center}
+.qrst{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700}
+.qrst.ok{color:var(--grn)}
+.qrst.no{color:var(--red)}
+.qrsdesc{font-size:.72rem;color:var(--mut);margin-top:3px;line-height:1.5}
+
+/* CODE + TIMER */
+.coderow{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 14px 0}
+.codedigits{display:flex;gap:5px}
+.codedigit{width:34px;height:40px;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;color:var(--grn)}
+.codesep{width:1px;height:24px;background:var(--brd)}
+.timerpill{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:50px;background:var(--bg3);border:1px solid var(--brd)}
+.tarcwrap{position:relative;width:22px;height:22px}
+.tarcwrap svg{width:22px;height:22px;transform:rotate(-90deg)}
+.tarcbg{fill:none;stroke:var(--mut2);stroke-width:2.5}
+.tarcfill{fill:none;stroke:var(--amb);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:56.5;transition:stroke-dashoffset 1s linear}
+.timernum{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;color:var(--amb);min-width:20px;text-align:right}
+
+/* USAGE */
+.usage{padding:12px 14px 14px}
+.proglbl{display:flex;justify-content:space-between;margin-bottom:5px}
+.proglbl span{font-size:.65rem;color:var(--mut)}
+.proglbl strong{font-size:.65rem;color:var(--txt)}
+.progbar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.progfill{height:100%;border-radius:2px;background:var(--grn)}
+.progfill.a{background:var(--amb)}
+
+/* STATS */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.sc{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:12px 13px}
+.slbl{font-size:.61rem;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.sval{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;line-height:1;margin-bottom:2px}
+.sval.g{color:var(--grn)}
+.sval.a{color:var(--amb)}
+.ssub{font-size:.61rem;color:var(--mut)}
+
+/* HISTORY */
+.sectit{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;margin-bottom:10px}
+.histcard{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.hi{display:flex;align-items:center;gap:11px;padding:11px 13px;border-bottom:1px solid var(--brd);transition:background .15s}
+.hi:last-child{border-bottom:none}
+.hi:active{background:var(--bg3)}
+.hico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
+.hico.g{background:rgba(0,230,118,.11)}
+.hico.r{background:rgba(255,69,58,.1)}
+.hmain{flex:1;min-width:0}
+.hn{font-size:.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hv{font-size:.66rem;color:var(--mut);margin-top:2px}
+.hrt{flex-shrink:0;text-align:right}
+.htm{font-size:.62rem;color:var(--mut)}
+.htag{display:inline-block;margin-top:3px;padding:2px 7px;border-radius:50px;font-size:.55rem;font-weight:700;text-transform:uppercase}
+.tg{background:rgba(0,230,118,.11);color:var(--grn)}
+.tr{background:rgba(255,69,58,.1);color:var(--red)}
+.tm{background:var(--bg3);color:var(--mut)}
+
+/* DEMO BTNS */
+.demrow{display:flex;gap:8px;margin-bottom:12px}
+.dembtn{flex:1;padding:9px 8px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:500;cursor:pointer;text-align:center;transition:background .15s}
+.dembtn:active{background:var(--sur)}
+
+/* SUBS PAGE */
+.subcard{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.subtop{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.subico{width:40px;height:40px;border-radius:12px;background:var(--bg3);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.subinf{flex:1;min-width:0}
+.subnm{font-size:.86rem;font-weight:600;margin-bottom:3px}
+.subdt{font-size:.68rem;color:var(--mut);line-height:1.5}
+.subpr{text-align:right;flex-shrink:0}
+.subprc{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700}
+.subprd{font-size:.6rem;color:var(--mut)}
+.addcard{border:1.5px dashed var(--brd);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;margin-bottom:10px;transition:all .2s}
+.addcard:active{background:var(--bg2)}
+.tabs{display:flex;gap:4px;margin-bottom:14px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rs);padding:4px;overflow-x:auto}
+.tab{flex-shrink:0;padding:7px 16px;border-radius:7px;font-size:.8rem;font-weight:500;color:var(--mut);cursor:pointer;white-space:nowrap;transition:all .15s}
+.tab.active{background:var(--sur);color:var(--txt)}
+.savhero{background:var(--bg2);border:1px solid var(--gbrd);border-radius:var(--r);padding:20px;text-align:center;margin-bottom:12px}
+
+/* ACCOUNT */
+.acchero{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
+.accav{width:64px;height:64px;border-radius:18px;background:var(--gdim);border:2px solid var(--gbrd);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--grn);flex-shrink:0}
+.accinf{flex:1;min-width:0}
+.accnm{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:3px}
+.accco{font-size:.78rem;color:var(--grn);font-weight:500;margin-bottom:4px}
+.accph{font-size:.78rem;color:var(--mut)}
+.accsect{margin-bottom:14px}
+.accst{font-size:.66rem;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;padding:0 2px}
+.acclist{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);overflow:hidden}
+.accitem{display:flex;align-items:center;gap:13px;padding:13px 15px;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .15s}
+.accitem:last-child{border-bottom:none}
+.accitem:active{background:var(--bg3)}
+.accico{width:36px;height:36px;border-radius:10px;background:var(--bg3);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.acclbl{font-size:.84rem;font-weight:500}
+.accsb{font-size:.7rem;color:var(--mut);margin-top:2px}
+.accchv{font-size:.8rem;color:var(--mut2);margin-left:auto}
+.danger .acclbl{color:var(--red)}
+
+/* MODALS / SHEETS */
+.ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center}
+.ov.show{display:flex}
+.sheet{width:100%;max-width:480px;background:var(--bg2);border-radius:24px 24px 0 0;border:1px solid var(--brd);border-bottom:none;padding:0 20px calc(20px + var(--sb));animation:su .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.shandle{width:36px;height:4px;border-radius:2px;background:var(--mut2);margin:14px auto 18px}
+.shtit{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:14px}
+
+/* SUB SWITCHER */
+.suboption{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .15s}
+.suboption:last-child{border-bottom:none}
+.suboption:active{opacity:.7}
+.suboption.cur .subonm{color:var(--grn)}
+.suboico{width:44px;height:44px;border-radius:13px;background:var(--bg3);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.subonm{font-size:.88rem;font-weight:600}
+.subodt{font-size:.68rem;color:var(--mut);margin-top:2px}
+.subock{font-size:1rem;color:var(--grn);margin-left:auto;flex-shrink:0}
+
+/* NOTIF SHEET */
+.ntogrow{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--brd);margin-bottom:4px}
+.ntoglbl{font-size:.84rem;font-weight:500}
+.ntogsb{font-size:.7rem;color:var(--mut);margin-top:2px}
+.tgsw{width:44px;height:26px;border-radius:13px;background:var(--mut2);position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+.tgsw.on{background:var(--grn)}
+.tgknob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .25s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tgsw.on .tgknob{transform:translateX(18px)}
+.nlist{max-height:55vh;overflow-y:auto}
+.nitem{display:flex;align-items:flex-start;gap:11px;padding:12px 0;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .15s}
+.nitem:last-child{border-bottom:none}
+.nitem.unread{background:rgba(0,230,118,.03)}
+.nico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;margin-top:2px}
+.nico.g{background:rgba(0,230,118,.11)}
+.nico.a{background:rgba(255,168,0,.12)}
+.nico.r{background:rgba(255,69,58,.1)}
+.ntit{font-size:.82rem;font-weight:600;line-height:1.3}
+.nbod{font-size:.72rem;color:var(--mut);margin-top:3px;line-height:1.5}
+.ntim{font-size:.62rem;color:var(--mut2);margin-top:4px}
+.undot{width:7px;height:7px;border-radius:50%;background:var(--grn);flex-shrink:0;margin-top:6px}
+
+/* REGISTRATION */
+.regscr{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto}
+.regscr.hidden{display:none}
+.regtop{padding:calc(var(--st) + var(--tbh)) 20px 0}
+.regsteps{display:flex;gap:6px;margin-bottom:30px}
+.regdot{flex:1;height:3px;border-radius:2px;background:var(--mut2);transition:background .3s}
+.regdot.done{background:var(--grn)}
+.regbody{flex:1;padding:0 20px calc(28px + var(--sb));display:flex;flex-direction:column}
+.regico{font-size:2.4rem;margin-bottom:14px}
+.regtit{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:8px}
+.regtit span{color:var(--grn)}
+.regsub{font-size:.84rem;color:var(--mut);line-height:1.6;margin-bottom:26px}
+.rgf{margin-bottom:12px}
+.rglbl{font-size:.7rem;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.rginp{width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.rginp:focus{border-color:var(--grn)}
+.rginp.err{border-color:var(--red)!important}
+.rginp::placeholder{color:var(--mut)}
+.ferr{font-size:.7rem;color:var(--red);margin-top:5px;display:none}
+.ferr.show{display:block}
+.phwrap{position:relative}
+.phpfx{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--txt);pointer-events:none}
+.phwrap .rginp{padding-left:58px}
+.rgbtn{width:100%;padding:16px;background:var(--grn);border:none;border-radius:var(--rs);color:#000;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:auto;transition:opacity .15s,transform .12s}
+.rgbtn:active{opacity:.85;transform:scale(.98)}
+.rgbtn:disabled{opacity:.3;pointer-events:none}
+.rgbtn2{width:100%;padding:14px;background:transparent;border:1.5px solid var(--brd);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.9rem;cursor:pointer;margin-top:10px;transition:background .15s}
+.rgbtn2:active{background:var(--bg2)}
+.otprow{display:flex;gap:12px;justify-content:center;margin-bottom:18px}
+.otpbox{width:60px;height:68px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:var(--rs);text-align:center;font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:700;color:var(--txt);outline:none;transition:border-color .2s;-webkit-appearance:none}
+.otpbox:focus{border-color:var(--grn)}
+.cardprev{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);border-radius:16px;padding:20px;margin-bottom:18px;position:relative;overflow:hidden;min-height:150px}
+.cardprev::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:rgba(0,230,118,.07)}
+.cchip{width:34px;height:26px;border-radius:5px;background:linear-gradient(135deg,#d4af37,#f0d060);margin-bottom:18px}
+.cnum{font-family:'Syne',sans-serif;font-size:1rem;font-weight:600;letter-spacing:.16em;color:rgba(255,255,255,.9);margin-bottom:14px}
+.cbot{display:flex;justify-content:space-between;align-items:flex-end}
+.chld{font-size:.68rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em}
+.chld strong{display:block;font-size:.85rem;color:#fff;margin-top:2px;font-weight:600}
+.clogo{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;color:rgba(255,255,255,.65)}
+.cinrow{display:flex;gap:10px}
+.cinrow .rgf{flex:1;min-width:0}
+
+/* EDIT OVERLAY */
+.editov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:none;align-items:flex-end}
+.editov.show{display:flex}
+.editsh{width:100%;background:var(--bg2);border-radius:24px 24px 0 0;border:1px solid var(--brd);border-bottom:none;padding:0 20px calc(20px + var(--sb));animation:su .3s cubic-bezier(.34,1.56,.64,1)}
+.editsave{width:100%;padding:15px;background:var(--grn);border:none;border-radius:var(--rs);color:#000;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:14px}
+.editcanc{width:100%;padding:13px;background:transparent;border:1.5px solid var(--brd);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.9rem;cursor:pointer;margin-top:10px}
+.editcanc:active{background:var(--bg3)}
+.cardmini{background:linear-gradient(135deg,#1a1a2e,#0f3460);border-radius:12px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between}
+.cardmini span{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:600;color:rgba(255,255,255,.9)}
+.cardmini small{font-size:.7rem;color:rgba(255,255,255,.55)}
+</style>
+</head>
+<body>
+
+<!-- REGISTRATION -->
+<div class="regscr" id="regScr">
+  <div class="regtop">
+    <div class="regsteps">
+      <div class="regdot done" id="rd1"></div>
+      <div class="regdot" id="rd2"></div>
+      <div class="regdot" id="rd3"></div>
+    </div>
+  </div>
+  <!-- step 1 -->
+  <div id="rs1" class="regbody">
+    <div class="regico">👋</div>
+    <div class="regtit">Добро пожаловать в <span>MealPass</span></div>
+    <div class="regsub">Корпоративное питание без лишних хлопот. Расскажите немного о себе.</div>
+    <div class="rgf"><div class="rglbl">Ваше имя</div><input class="rginp" id="iName" type="text" placeholder="Имя Фамилия" autocomplete="name" oninput="ck1()"></div>
+    <div class="rgf"><div class="rglbl">Компания</div><input class="rginp" id="iComp" type="text" placeholder="Название организации" oninput="ck1()"></div>
+    <div class="rgf">
+      <div class="rglbl">Номер телефона</div>
+      <div class="phwrap"><span class="phpfx">+998</span><input class="rginp" id="iPhone" type="tel" placeholder="90 123 45 67" maxlength="12" oninput="ckPhone()"></div>
+      <div class="ferr" id="phErr">⚠ Требуется узбекский номер (+998 XX XXX XX XX)</div>
+    </div>
+    <button class="rgbtn" id="btn1" disabled onclick="gstep(2)">Продолжить →</button>
+  </div>
+  <!-- step 2 otp -->
+  <div id="rs2" class="regbody" style="display:none">
+    <div class="regico">📱</div>
+    <div class="regtit">Подтвердите <span>номер</span></div>
+    <div class="regsub" id="otpSub">Код отправлен на ваш номер</div>
+    <div class="otprow">
+      <input class="otpbox" id="o1" type="tel" maxlength="1" oninput="oi(this,'o2')" onkeydown="ok(event,this,null)">
+      <input class="otpbox" id="o2" type="tel" maxlength="1" oninput="oi(this,'o3')" onkeydown="ok(event,this,'o1')">
+      <input class="otpbox" id="o3" type="tel" maxlength="1" oninput="oi(this,'o4')" onkeydown="ok(event,this,'o2')">
+      <input class="otpbox" id="o4" type="tel" maxlength="1" oninput="oi(this,null)"  onkeydown="ok(event,this,'o3')">
+    </div>
+    <div style="font-size:.78rem;color:var(--mut);text-align:center;margin-bottom:6px">Для теста введите: <strong style="color:var(--grn)">1111</strong></div>
+    <div style="font-size:.78rem;color:var(--mut);text-align:center;margin-bottom:24px">Не пришло? <span style="color:var(--grn);cursor:pointer" onclick="resend()">Повторно</span></div>
+    <button class="rgbtn" id="btn2" disabled onclick="gstep(3)">Подтвердить</button>
+    <button class="rgbtn2" onclick="gstep(1)">← Назад</button>
+  </div>
+  <!-- step 3 card -->
+  <div id="rs3" class="regbody" style="display:none">
+    <div class="regico">💳</div>
+    <div class="regtit">Привяжите <span>карту</span></div>
+    <div class="regsub">Для автоматического списания абонентской платы.</div>
+    <div class="cardprev">
+      <div class="cchip"></div>
+      <div class="cnum" id="cpNum">•••• •••• •••• ••••</div>
+      <div class="cbot"><div class="chld">Держатель<strong id="cpHld">—</strong></div><div class="clogo">UZCARD</div></div>
+    </div>
+    <div class="rgf"><div class="rglbl">Номер карты</div><input class="rginp" id="iCard" type="tel" placeholder="0000 0000 0000 0000" maxlength="19" oninput="fmtCard(this)"></div>
+    <div class="cinrow">
+      <div class="rgf"><div class="rglbl">Срок</div><input class="rginp" id="iExp" type="tel" placeholder="MM/YY" maxlength="5" oninput="fmtExp(this)"></div>
+      <div class="rgf"><div class="rglbl">Имя на карте</div><input class="rginp" id="iHld" type="text" placeholder="IVAN IVANOV" oninput="updCard()" style="text-transform:uppercase"></div>
+    </div>
+    <button class="rgbtn" onclick="finReg()">Завершить регистрацию 🎉</button>
+    <button class="rgbtn2" onclick="gstep(2)">← Назад</button>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="dov" id="dov" onclick="closeDrw()"></div>
+<aside class="drw" id="drw">
+  <div class="drw-head">
+    <div class="drw-logo">Meal<span>Pass</span></div>
+    <div class="drw-user">
+      <div class="dav" id="dav">МП</div>
+      <div><div class="dnm" id="dnm">—</div><div class="dco" id="dco">—</div></div>
+    </div>
+  </div>
+  <nav class="drw-nav">
+    <div class="dni active" onclick="gpage('home')"><span class="dniico">⬡</span><span>Главная</span><div class="dnidot"></div></div>
+    <div class="dni" onclick="gpage('subs')"><span class="dniico">◈</span><span>Подписки</span><div class="dnidot"></div></div>
+    <div class="dni" onclick="gpage('hist')"><span class="dniico">◷</span><span>История</span><div class="dnidot"></div></div>
+    <div class="dni" onclick="gpage('save')"><span class="dniico">◎</span><span>Экономия</span><div class="dnidot"></div></div>
+    <div class="dni" onclick="gpage('acc')"><span class="dniico">👤</span><span>Аккаунт</span><div class="dnidot"></div></div>
+  </nav>
+  <div class="drw-foot">MealPass v1.0 · Корпоративное питание</div>
+</aside>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="icon-btn mbtn" id="mbtn" onclick="togDrw()">
+      <div class="mbar"></div><div class="mbar"></div><div class="mbar"></div>
+    </div>
+    <div class="logo">Meal<span>Pass</span></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="icon-btn" onclick="openNotif()">🔔<div class="ndot" id="ndot"></div></div>
+      <div class="icon-btn grn" id="tpAv" onclick="gpage('acc')">МП</div>
+    </div>
+  </div>
+</header>
+
+<!-- PAGES -->
+<div class="pages">
+
+  <!-- HOME -->
+  <div class="pg active" id="pg-home">
+    <div class="pghd"><h1 id="greet">Доброе утро</h1><p id="ddate"></p></div>
+
+    <div class="paycard" id="paycard">
+      <div class="paystripe" id="paystripe"></div>
+      <div class="payhdr">
+        <div class="badge bg" id="statbadge"><div class="bdot"></div><span>Доступно</span></div>
+        <div class="vbtn" id="vbtn" onclick="openSubSw()">
+          <span id="vemo">☕</span><span class="vn" id="vnm">Coffellito</span><span class="varr">▾</span>
+        </div>
+      </div>
+      <div class="qrwrap">
+        <div class="qrbox" id="qrbox">
+          <svg id="qrsvg" viewBox="0 0 86 86" xmlns="http://www.w3.org/2000/svg">
+            <rect width="86" height="86" fill="white"/>
+            <!-- fixed corners -->
+            <rect x="6"  y="6"  width="22" height="22" rx="2" fill="#111"/>
+            <rect x="10" y="10" width="14" height="14" rx="1" fill="white"/>
+            <rect x="13" y="13" width="8"  height="8"  rx="1" fill="#111"/>
+            <rect x="58" y="6"  width="22" height="22" rx="2" fill="#111"/>
+            <rect x="62" y="10" width="14" height="14" rx="1" fill="white"/>
+            <rect x="65" y="13" width="8"  height="8"  rx="1" fill="#111"/>
+            <rect x="6"  y="58" width="22" height="22" rx="2" fill="#111"/>
+            <rect x="10" y="62" width="14" height="14" rx="1" fill="white"/>
+            <rect x="13" y="65" width="8"  height="8"  rx="1" fill="#111"/>
+            <g id="qrdots"></g>
+          </svg>
+          <div class="qrblur" id="qrblur"><div class="qbico">🚫</div><div class="qbtxt">ИСПОЛЬЗОВАН</div></div>
+        </div>
+        <div class="qrstat">
+          <div class="qrst ok" id="qrst">Кофе доступен</div>
+          <div class="qrsdesc" id="qrdesc">Покажи QR кассиру — сегодня ещё не использован</div>
+        </div>
+      </div>
+      <div class="coderow" id="coderow">
+        <div class="codedigits">
+          <div class="codedigit" id="cd1">—</div>
+          <div class="codedigit" id="cd2">—</div>
+          <div class="codedigit" id="cd3">—</div>
+          <div class="codedigit" id="cd4">—</div>
+        </div>
+        <div class="codesep"></div>
+        <div class="timerpill">
+          <div class="tarcwrap">
+            <svg viewBox="0 0 22 22"><circle class="tarcbg" cx="11" cy="11" r="9"/><circle class="tarcfill" id="tarc" cx="11" cy="11" r="9" stroke-dashoffset="0"/></svg>
+          </div>
+          <span class="timernum" id="tsec">60</span>
+        </div>
+      </div>
+      <div class="usage">
+        <div class="proglbl"><span id="ulbl">Использовано в июне</span><strong id="uval">18 / 26 дней</strong></div>
+        <div class="progbar"><div class="progfill" id="uprog" style="width:69%"></div></div>
+      </div>
+    </div>
+
+    <div class="sgrid">
+      <div class="sc"><div class="slbl">Экономия / мес</div><div class="sval g">200 000</div><div class="ssub">сум</div></div>
+      <div class="sc"><div class="slbl">Подписок</div><div class="sval">2</div><div class="ssub">кофе + обед</div></div>
+      <div class="sc"><div class="slbl">До списания</div><div class="sval a">24 дня</div><div class="ssub">1 июля</div></div>
+      <div class="sc"><div class="slbl">Сумма / мес</div><div class="sval">1 150 000</div><div class="ssub">сум</div></div>
+    </div>
+
+    <div class="sectit">Последние визиты</div>
+    <div class="histcard" id="histcard">
+      <div class="hi"><div class="hico g">☕</div><div class="hmain"><div class="hn">Американо · Coffellito</div><div class="hv">ул. Афросиаб, 6 · Ташкент</div></div><div class="hrt"><div class="htm">Сегодня, 09:14</div><div class="htag tg">Списано</div></div></div>
+      <div class="hi"><div class="hico g">🍱</div><div class="hmain"><div class="hn">Бизнес-ланч · Beshqozon</div><div class="hv">Вчера, 13:02</div></div><div class="hrt"><div class="htm">Вчера</div><div class="htag tg">Списано</div></div></div>
+      <div class="hi"><div class="hico g">☕</div><div class="hmain"><div class="hn">Капучино · Coffellito</div><div class="hv">4 июня, 10:33</div></div><div class="hrt"><div class="htm">4 июня</div><div class="htag tg">Списано</div></div></div>
+      <div class="hi"><div class="hico r">⊘</div><div class="hmain"><div class="hn">Coffellito — пропущено</div><div class="hv">Рабочий день пропущен</div></div><div class="hrt"><div class="htm">3 июня</div><div class="htag tm">Пропущено</div></div></div>
+    </div>
+    <div class="demrow">
+      <button class="dembtn" onclick="setUsed()">🔴 Использован</button>
+      <button class="dembtn" onclick="setAvail()">🟢 Доступен</button>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- SUBS -->
+  <div class="pg" id="pg-subs">
+    <div class="pghd"><h1>Мои подписки</h1><p>Активных: 2</p></div>
+    <div class="subcard">
+      <div class="subtop"><div class="subico">☕</div><div class="subinf"><div class="subnm">Кофе — Coffellito</div><div class="subdt">1 напиток в день · Американо или капучино · 26 рабочих дней</div></div><div class="subpr"><div class="subprc">450 000</div><div class="subprd">сум/мес</div></div></div>
+      <div class="proglbl"><span>Использовано</span><strong>18 / 26</strong></div><div class="progbar" style="margin-bottom:10px"><div class="progfill" style="width:69%"></div></div>
+      <div class="htag tg">Активна</div>
+    </div>
+    <div class="subcard">
+      <div class="subtop"><div class="subico">🍱</div><div class="subinf"><div class="subnm">Обед — Beshqozon</div><div class="subdt">Бизнес-ланч · Пн–Пт · Суп + горячее + чай</div></div><div class="subpr"><div class="subprc">700 000</div><div class="subprd">сум/мес</div></div></div>
+      <div class="proglbl"><span>Использовано</span><strong>15 / 26</strong></div><div class="progbar" style="margin-bottom:10px"><div class="progfill a" style="width:58%"></div></div>
+      <div class="htag tg">Активна</div>
+    </div>
+    <div class="addcard" onclick=""><div style="font-size:1.3rem;margin-bottom:6px">＋</div><div style="font-size:.8rem;color:var(--mut)">Добавить подписку</div></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="pg" id="pg-hist">
+    <div class="pghd"><h1>История</h1><p>Июнь 2026</p></div>
+    <div class="tabs">
+      <div class="tab active" onclick="actTab(this)">Все</div>
+      <div class="tab" onclick="actTab(this)">Кофе</div>
+      <div class="tab" onclick="actTab(this)">Обед</div>
+    </div>
+    <div class="histcard">
+      <div class="hi"><div class="hico g">☕</div><div class="hmain"><div class="hn">Американо · Coffellito</div><div class="hv">ул. Афросиаб, 6</div></div><div class="hrt"><div class="htm">Сегодня, 09:14</div><div class="htag tg">Списано</div></div></div>
+      <div class="hi"><div class="hico g">🍱</div><div class="hmain"><div class="hn">Бизнес-ланч · Beshqozon</div><div class="hv">Вчера, 13:02</div></div><div class="hrt"><div class="htm">Вчера</div><div class="htag tg">Списано</div></div></div>
+      <div class="hi"><div class="hico g">☕</div><div class="hmain"><div class="hn">Капучино · Coffellito</div><div class="hv">4 июня, 10:33</div></div><div class="hrt"><div class="htm">4 июня</div><div class="htag tg">Списано</div></div></div>
+      <div class="hi"><div class="hico r">⊘</div><div class="hmain"><div class="hn">Coffellito — пропущено</div><div class="hv">3 июня</div></div><div class="hrt"><div class="htm">3 июня</div><div class="htag tm">Пропущено</div></div></div>
+    </div>
+  </div>
+
+  <!-- SAVINGS -->
+  <div class="pg" id="pg-save">
+    <div class="pghd"><h1>Экономия</h1><p>С начала подключения</p></div>
+    <div class="savhero"><div style="font-size:2rem;margin-bottom:10px">🎉</div><div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:5px">За 7 месяцев сэкономлено 1 400 000 сум</div><div style="font-size:.78rem;color:var(--mut)">Это ~2 авиабилета Ташкент — Стамбул</div></div>
+    <div class="sgrid">
+      <div class="sc"><div class="slbl">Июнь</div><div class="sval g">200 000</div><div class="ssub">сэкономлено</div></div>
+      <div class="sc"><div class="slbl">Всего</div><div class="sval g">1 400 000</div><div class="ssub">за 7 мес</div></div>
+      <div class="sc"><div class="slbl">Розница/кофе</div><div class="sval">650 000</div><div class="ssub">сум/мес</div></div>
+      <div class="sc"><div class="slbl">По подписке</div><div class="sval a">450 000</div><div class="ssub">экономия 31%</div></div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div class="pg" id="pg-acc">
+    <div class="pghd"><h1>Аккаунт</h1><p>Ваши данные и настройки</p></div>
+    <div class="acchero">
+      <div class="accav" id="accav">МП</div>
+      <div class="accinf"><div class="accnm" id="accnm">—</div><div class="accco" id="accco">—</div><div class="accph" id="accph">—</div></div>
+    </div>
+    <div class="accsect"><div class="accst">Личные данные</div>
+      <div class="acclist">
+        <div class="accitem" onclick="opEdit('name')"><div class="accico">👤</div><div style="flex:1;min-width:0"><div class="acclbl">Имя и фамилия</div><div class="accsb" id="aenm">—</div></div><span class="accchv">›</span></div>
+        <div class="accitem" onclick="opEdit('comp')"><div class="accico">🏢</div><div style="flex:1;min-width:0"><div class="acclbl">Компания</div><div class="accsb" id="aeco">—</div></div><span class="accchv">›</span></div>
+        <div class="accitem" onclick="opEdit('phone')"><div class="accico">📱</div><div style="flex:1;min-width:0"><div class="acclbl">Номер телефона</div><div class="accsb" id="aeph">—</div></div><span class="accchv">›</span></div>
+      </div>
+    </div>
+    <div class="accsect"><div class="accst">Способ оплаты</div>
+      <div class="acclist">
+        <div class="accitem" onclick="opEdit('card')"><div class="accico">💳</div><div style="flex:1;min-width:0"><div class="acclbl">Привязанная карта</div><div class="accsb" id="aecd">Не добавлена</div></div><span class="accchv">›</span></div>
+        <div class="accitem" onclick="opEdit('addcard')"><div class="accico">＋</div><div style="flex:1;min-width:0"><div class="acclbl">Добавить карту</div><div class="accsb">UZCARD, Humo, Visa</div></div><span class="accchv">›</span></div>
+      </div>
+    </div>
+    <div class="accsect"><div class="accst">Другое</div>
+      <div class="acclist">
+        <div class="accitem" onclick="openNotif()"><div class="accico">🔔</div><div style="flex:1;min-width:0"><div class="acclbl">Уведомления</div><div class="accsb" id="notifAccSub">Включены</div></div><span class="accchv">›</span></div>
+        <div class="accitem"><div class="accico">📄</div><div style="flex:1;min-width:0"><div class="acclbl">Условия использования</div></div><span class="accchv">›</span></div>
+        <div class="accitem danger" onclick="logout()"><div class="accico" style="background:var(--rdim);border-color:rgba(255,69,58,.2)">🚪</div><div style="flex:1;min-width:0"><div class="acclbl">Выйти из аккаунта</div></div></div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <div class="bni active" id="bn-home" onclick="gpage('home')"><div class="bni-ico">⬡</div><div class="bni-lbl">Главная</div><div class="bnidot"></div></div>
+  <div class="bni" id="bn-subs" onclick="gpage('subs')"><div class="bni-ico">◈</div><div class="bni-lbl">Подписки</div><div class="bnidot"></div></div>
+  <div class="bni" id="bn-hist" onclick="gpage('hist')"><div class="bni-ico">◷</div><div class="bni-lbl">История</div><div class="bnidot"></div></div>
+  <div class="bni" id="bn-save" onclick="gpage('save')"><div class="bni-ico">◎</div><div class="bni-lbl">Экономия</div><div class="bnidot"></div></div>
+  <div class="bni" id="bn-acc" onclick="gpage('acc')"><div class="bni-ico">👤</div><div class="bni-lbl">Аккаунт</div><div class="bnidot"></div></div>
+</nav>
+
+<!-- LIMIT MODAL -->
+<div class="ov" id="limOv" onclick="closeLim()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <div style="font-size:2.5rem;text-align:center;margin-bottom:12px">🚫</div>
+    <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;text-align:center;margin-bottom:8px">Лимит исчерпан</div>
+    <div style="font-size:.83rem;color:var(--mut);text-align:center;line-height:1.6;margin-bottom:22px" id="limTxt">Уже использован сегодня. Следующий доступен завтра с 08:00.</div>
+    <button style="width:100%;padding:14px;background:var(--sur);border:1px solid var(--brd);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer" onclick="closeLim()">Понятно</button>
+  </div>
+</div>
+
+<!-- SUB SWITCHER -->
+<div class="ov" id="subOv" onclick="closeSubSw()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <div class="shtit">Выбрать подписку</div>
+    <div style="font-size:.76rem;color:var(--mut);margin-bottom:14px">QR, код и история — для выбранного места</div>
+    <div id="subList"></div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="ov" id="notifOv" onclick="closeNotif()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="shtit" style="margin:0">Уведомления</div>
+      <span style="font-size:.75rem;color:var(--grn);cursor:pointer" onclick="markRead()">Прочитать все</span>
+    </div>
+    <div class="ntogrow">
+      <div><div class="ntoglbl">Push-уведомления</div><div class="ntogsb" id="ntogSub">Включены</div></div>
+      <div class="tgsw on" id="ntogSw" onclick="togNotif()"><div class="tgknob"></div></div>
+    </div>
+    <div class="nlist" id="nlist"></div>
+  </div>
+</div>
+
+<!-- EDIT OVERLAY -->
+<div class="editov" id="editOv" onclick="closeEdit()">
+  <div class="editsh" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <div class="shtit" id="editTit">Изменить</div>
+    <div id="editBody"></div>
+    <button class="editsave" onclick="saveEdit()">Сохранить</button>
+    <button class="editcanc" onclick="closeEdit()">Отмена</button>
+  </div>
+</div>
+
+<script>
+// ══ STORAGE ══
+const SK='mp_user', NK='mp_notif';
+function svU(){try{localStorage.setItem(SK,JSON.stringify(U));}catch(e){}}
+function ldU(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return null;}
+function clU(){try{localStorage.removeItem(SK);}catch(e){}}
+function svN(){try{localStorage.setItem(NK,JSON.stringify(NS));}catch(e){}}
+function ldN(){try{const r=localStorage.getItem(NK);if(r)return JSON.parse(r);}catch(e){}return null;}
+
+// ══ USER STATE ══
+let U={name:'',comp:'',phone:'',card:''};
+let EF='';
+
+// ══ SUBSCRIPTIONS ══
+const SUBS=[
+  {id:'cof',name:'Coffellito',emo:'☕',type:'Кофе',det:'1 напиток в день · Американо или капучино',
+   stOk:'Кофе доступен',stNo:'Кофе уже взят',
+   dOk:'Покажи QR кассиру — сегодня ещё не использован',
+   dNo:'Кофе уже взят сегодня в 09:14. Следующий доступен завтра.',
+   ulbl:'Использовано в июне',uval:'18 / 26 дней',upct:69,
+   hist:[
+     {i:'☕',c:'g',n:'Американо · Coffellito',v:'ул. Афросиаб, 6 · Ташкент',t:'Сегодня, 09:14',tg:'tg',tl:'Списано'},
+     {i:'☕',c:'g',n:'Капучино · Coffellito',v:'4 июня, 10:33',t:'4 июня',tg:'tg',tl:'Списано'},
+     {i:'☕',c:'g',n:'Американо · Coffellito',v:'3 июня, 09:05',t:'3 июня',tg:'tg',tl:'Списано'},
+     {i:'⊘',c:'r',n:'Coffellito — пропущено',v:'Рабочий день пропущен',t:'2 июня',tg:'tm',tl:'Пропущено'},
+   ]},
+  {id:'bsh',name:'Beshqozon',emo:'🍱',type:'Обед',det:'Бизнес-ланч · Пн–Пт · Суп + горячее + чай',
+   stOk:'Обед доступен',stNo:'Обед уже взят',
+   dOk:'Покажи QR кассиру — сегодня ещё не использован',
+   dNo:'Обед уже взят сегодня в 13:02. Следующий доступен завтра.',
+   ulbl:'Использовано в июне',uval:'15 / 26 дней',upct:58,
+   hist:[
+     {i:'🍱',c:'g',n:'Бизнес-ланч · Beshqozon',v:'Вчера, 13:02',t:'Вчера',tg:'tg',tl:'Списано'},
+     {i:'🍱',c:'g',n:'Бизнес-ланч · Beshqozon',v:'3 июня, 13:10',t:'3 июня',tg:'tg',tl:'Списано'},
+     {i:'🍱',c:'g',n:'Бизнес-ланч · Beshqozon',v:'2 июня, 12:55',t:'2 июня',tg:'tg',tl:'Списано'},
+     {i:'⊘',c:'r',n:'Beshqozon — пропущено',v:'Рабочий день пропущен',t:'30 мая',tg:'tm',tl:'Пропущено'},
+   ]}
+];
+let AS=SUBS[0];
+
+// ══ NOTIFICATIONS ══
+let NS={on:true,items:[
+  {id:1,i:'☕',c:'g',tit:'Кофе доступен сегодня',bod:'Ваш ежедневный кофе в Coffellito доступен. Не забудьте воспользоваться!',tm:'Сегодня, 08:00',rd:false},
+  {id:2,i:'🍱',c:'g',tit:'Обед доступен',bod:'Бизнес-ланч в Beshqozon доступен с 12:00 до 14:00.',tm:'Сегодня, 12:00',rd:false},
+  {id:3,i:'💳',c:'a',tit:'Скоро списание',bod:'Через 7 дней будет списание 1 150 000 сум за подписки.',tm:'Вчера',rd:true},
+  {id:4,i:'✅',c:'g',tit:'Кофе списан',bod:'Американо в Coffellito успешно списан. Приятного аппетита!',tm:'Вчера, 09:14',rd:true},
+]};
+
+// ══ QR ══
+const TOT=60; let QT=TOT, QI=null;
+function gTok(){return Math.floor(Math.random()*0xFFFFFFFF).toString(16).toUpperCase().padStart(8,'0');}
+function gCode(){return String(Math.floor(1000+Math.random()*9000));}
+function drawQR(tok){
+  let s=0; for(let i=0;i<tok.length;i++)s=(s*31+tok.charCodeAt(i))>>>0;
+  function rnd(){s=(s*1664525+1013904223)>>>0;return s/0xFFFFFFFF;}
+  const pts=[[34,34],[40,34],[46,34],[52,34],[34,40],[46,40],[52,40],[34,46],[40,46],[52,46],[34,52],[40,52],[46,52],[58,34],[64,34],[70,34],[76,34],[58,40],[70,40],[64,46],[76,46],[34,58],[40,58],[52,58],[58,58],[34,64],[46,64],[64,64],[70,64],[40,70],[52,70],[58,70],[76,70]];
+  const g=document.getElementById('qrdots'); g.innerHTML='';
+  pts.forEach(([x,y])=>{if(rnd()>.35){const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',4);r.setAttribute('height',4);r.setAttribute('fill','#111');r.setAttribute('rx','1');g.appendChild(r);}});
+}
+function drawCode(c){
+  ['cd1','cd2','cd3','cd4'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.style.opacity='0';el.style.transform='scale(.7)';
+    setTimeout(()=>{el.textContent=c[i];el.style.transition='all .2s cubic-bezier(.34,1.56,.64,1)';el.style.opacity='1';el.style.transform='scale(1)';},i*50);
+  });
+}
+function updArc(s){
+  const a=document.getElementById('tarc');if(a)a.style.strokeDashoffset=56.5*(1-s/TOT);
+  const t=document.getElementById('tsec');if(t)t.textContent=s;
+}
+function rfsh(){drawQR(gTok());drawCode(gCode());QT=TOT;updArc(TOT);}
+function startQR(){
+  rfsh();
+  if(QI)clearInterval(QI);
+  QI=setInterval(()=>{QT--;updArc(QT);if(QT<=0)rfsh();},1000);
+}
+
+// ══ INIT ══
+window.addEventListener('DOMContentLoaded',function(){
+  // date
+  const D=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+  const M=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const now=new Date();
+  document.getElementById('ddate').textContent=D[now.getDay()]+', '+now.getDate()+' '+M[now.getMonth()]+' '+now.getFullYear();
+  // notifications
+  const sn=ldN(); if(sn)NS=sn; updNdot();
+  // user
+  const su=ldU();
+  if(su&&su.name){
+    U=su; applyUI();
+    document.getElementById('regScr').classList.add('hidden');
+    startQR();
+  }
+  // swipe drawer
+  let sx=0;
+  document.getElementById('drw').addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
+  document.getElementById('drw').addEventListener('touchend',e=>{if(sx-e.changedTouches[0].clientX>60)closeDrw();},{passive:true});
+});
+
+// ══ UI ══
+function ini(name){const p=name.trim().split(/\s+/);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():name.substring(0,2).toUpperCase()||'МП';}
+function applyUI(){
+  const i=ini(U.name);
+  ['dav','tpAv','accav'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=i;});
+  document.getElementById('dnm').textContent=U.name||'—';
+  document.getElementById('dco').textContent=U.comp||'—';
+  document.getElementById('accnm').textContent=U.name||'—';
+  document.getElementById('accco').textContent=U.comp||'—';
+  document.getElementById('accph').textContent=U.phone?'+998 '+U.phone:'—';
+  document.getElementById('aenm').textContent=U.name||'—';
+  document.getElementById('aeco').textContent=U.comp||'—';
+  document.getElementById('aeph').textContent=U.phone?'+998 '+U.phone:'—';
+  document.getElementById('aecd').textContent=U.card?'•••• •••• •••• '+U.card.replace(/\s/g,'').slice(-4):'Не добавлена';
+  const h=new Date().getHours();
+  const g=h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер';
+  document.getElementById('greet').textContent=g+', '+U.name.split(' ')[0];
+}
+
+// ══ REG ══
+const UZP=['90','91','93','94','95','97','98','99','33','50','55','77','88'];
+function ckPhone(){
+  const raw=document.getElementById('iPhone').value.replace(/\D/g,'');
+  const ok=raw.length>=9&&UZP.includes(raw.substring(0,2));
+  document.getElementById('iPhone').classList.toggle('err',raw.length>=2&&!ok);
+  document.getElementById('phErr').classList.toggle('show',raw.length>=2&&!ok);
+  ck1();
+}
+function ck1(){
+  const n=document.getElementById('iName').value.trim();
+  const c=document.getElementById('iComp').value.trim();
+  const raw=document.getElementById('iPhone').value.replace(/\D/g,'');
+  const ok=raw.length>=9&&UZP.includes(raw.substring(0,2));
+  document.getElementById('btn1').disabled=!(n.length>=2&&c.length>=2&&ok);
+}
+function gstep(n){
+  [1,2,3].forEach(i=>{document.getElementById('rs'+i).style.display=i===n?'flex':'none';});
+  ['rd1','rd2','rd3'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.classList.toggle('done',i<n);});
+  if(n===2){
+    document.getElementById('otpSub').textContent='Код отправлен на +998 '+document.getElementById('iPhone').value.trim();
+    ['o1','o2','o3','o4'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('btn2').disabled=true;
+    setTimeout(()=>document.getElementById('o1').focus(),300);
+  }
+}
+function oi(el,nxt){
+  if(el.value.length>1)el.value=el.value.slice(-1);
+  if(el.value&&nxt)document.getElementById(nxt).focus();
+  const v=['o1','o2','o3','o4'].map(id=>document.getElementById(id).value);
+  document.getElementById('btn2').disabled=!v.every(x=>x!=='');
+  if(v.every(x=>x!=='')&&v.join('')==='1111')setTimeout(()=>gstep(3),300);
+}
+function ok(e,el,pr){if(e.key==='Backspace'&&!el.value&&pr)document.getElementById(pr).focus();}
+function resend(){['o1','o2','o3','o4'].forEach(id=>document.getElementById(id).value='');document.getElementById('btn2').disabled=true;document.getElementById('o1').focus();}
+function fmtCard(el){let v=el.value.replace(/\D/g,'').substring(0,16);el.value=v.replace(/(.{4})/g,'$1 ').trim();updCard();}
+function fmtExp(el){let v=el.value.replace(/\D/g,'').substring(0,4);if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);el.value=v;}
+function updCard(){
+  const n=document.getElementById('iCard').value||'';
+  const h=(document.getElementById('iHld').value||'').toUpperCase();
+  document.getElementById('cpNum').textContent='•••• •••• •••• '+(n.replace(/\s/g,'').slice(-4)||'••••');
+  document.getElementById('cpHld').textContent=h||'—';
+}
+function finReg(){
+  U.name=document.getElementById('iName').value.trim();
+  U.comp=document.getElementById('iComp').value.trim();
+  U.phone=document.getElementById('iPhone').value.trim();
+  U.card=document.getElementById('iCard').value;
+  svU(); applyUI();
+  document.getElementById('regScr').classList.add('hidden');
+  startQR();
+}
+function logout(){
+  if(!confirm('Выйти из аккаунта?'))return;
+  clU(); U={name:'',comp:'',phone:'',card:''};
+  if(QI)clearInterval(QI);
+  ['dav','tpAv','accav'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='МП';});
+  document.getElementById('regScr').classList.remove('hidden');
+  gstep(1);
+}
+
+// ══ PAGES ══
+const PGS=['home','subs','hist','save','acc'];
+function gpage(id){
+  PGS.forEach(p=>{
+    document.getElementById('pg-'+p).classList.toggle('active',p===id);
+    const b=document.getElementById('bn-'+p);if(b)b.classList.toggle('active',p===id);
+  });
+  document.querySelectorAll('.dni').forEach((el,i)=>el.classList.toggle('active',PGS[i]===id));
+  document.querySelector('.pages').scrollTo(0,0);
+  closeDrw();
+}
+function togDrw(){const o=document.getElementById('drw').classList.contains('open');document.getElementById('drw').classList.toggle('open',!o);document.getElementById('dov').classList.toggle('open',!o);document.getElementById('mbtn').classList.toggle('open',!o);}
+function closeDrw(){document.getElementById('drw').classList.remove('open');document.getElementById('dov').classList.remove('open');document.getElementById('mbtn').classList.remove('open');}
+
+// ══ QR STATUS ══
+function setUsed(){
+  document.getElementById('paycard').classList.add('used');
+  document.getElementById('paystripe').style.background='var(--red)';
+  document.getElementById('statbadge').className='badge br';
+  document.getElementById('statbadge').innerHTML='<div class="bdot"></div><span>Использован</span>';
+  document.getElementById('qrblur').classList.add('show');
+  document.getElementById('qrst').textContent=AS.stNo;
+  document.getElementById('qrst').className='qrst no';
+  document.getElementById('qrdesc').textContent=AS.dNo;
+  document.getElementById('coderow').style.display='none';
+  document.getElementById('limTxt').textContent=AS.dNo;
+  document.getElementById('limOv').classList.add('show');
+}
+function setAvail(){
+  document.getElementById('paycard').classList.remove('used');
+  document.getElementById('paystripe').style.background='var(--grn)';
+  document.getElementById('statbadge').className='badge bg';
+  document.getElementById('statbadge').innerHTML='<div class="bdot"></div><span>Доступно</span>';
+  document.getElementById('qrblur').classList.remove('show');
+  document.getElementById('qrst').textContent=AS.stOk;
+  document.getElementById('qrst').className='qrst ok';
+  document.getElementById('qrdesc').textContent=AS.dOk;
+  document.getElementById('coderow').style.display='flex';
+}
+function closeLim(){document.getElementById('limOv').classList.remove('show');}
+
+// ══ SUB SWITCHER ══
+function openSubSw(){
+  document.getElementById('vbtn').classList.add('open');
+  document.getElementById('subList').innerHTML=SUBS.map(s=>`
+    <div class="suboption${s.id===AS.id?' cur':''}" onclick="selSub('${s.id}')">
+      <div class="suboico">${s.emo}</div>
+      <div><div class="subonm">${s.name}</div><div class="subodt">${s.type} · ${s.det}</div></div>
+      ${s.id===AS.id?'<div class="subock">✓</div>':''}
+    </div>`).join('');
+  document.getElementById('subOv').classList.add('show');
+}
+function closeSubSw(){document.getElementById('subOv').classList.remove('show');document.getElementById('vbtn').classList.remove('open');}
+function selSub(id){
+  AS=SUBS.find(s=>s.id===id);
+  document.getElementById('vemo').textContent=AS.emo;
+  document.getElementById('vnm').textContent=AS.name;
+  setAvail();
+  document.getElementById('ulbl').textContent=AS.ulbl;
+  document.getElementById('uval').textContent=AS.uval;
+  const pf=document.getElementById('uprog');
+  pf.style.width=AS.upct+'%';
+  pf.className='progfill'+(AS.upct<65?' a':'');
+  document.getElementById('histcard').innerHTML=AS.hist.map(h=>`
+    <div class="hi"><div class="hico ${h.c}">${h.i}</div><div class="hmain"><div class="hn">${h.n}</div><div class="hv">${h.v}</div></div><div class="hrt"><div class="htm">${h.t}</div><div class="htag ${h.tg}">${h.tl}</div></div></div>`).join('');
+  rfsh();
+  closeSubSw();
+}
+
+// ══ NOTIFICATIONS ══
+function updNdot(){const u=NS.items.filter(x=>!x.rd).length;document.getElementById('ndot').classList.toggle('on',u>0&&NS.on);}
+function openNotif(){
+  document.getElementById('ntogSw').classList.toggle('on',NS.on);
+  document.getElementById('ntogSub').textContent=NS.on?'Включены — вы получаете все уведомления':'Выключены';
+  document.getElementById('notifAccSub').textContent=NS.on?'Включены':'Выключены';
+  document.getElementById('nlist').innerHTML=NS.items.map(n=>`
+    <div class="nitem${n.rd?'':' unread'}" onclick="rdN(${n.id})">
+      <div class="nico ${n.c}">${n.i}</div>
+      <div style="flex:1;min-width:0"><div class="ntit">${n.tit}</div><div class="nbod">${n.bod}</div><div class="ntim">${n.tm}</div></div>
+      ${n.rd?'':'<div class="undot"></div>'}
+    </div>`).join('');
+  document.getElementById('notifOv').classList.add('show');
+}
+function closeNotif(){document.getElementById('notifOv').classList.remove('show');}
+function togNotif(){NS.on=!NS.on;svN();openNotif();updNdot();}
+function markRead(){NS.items.forEach(n=>n.rd=true);svN();updNdot();openNotif();}
+function rdN(id){const n=NS.items.find(x=>x.id===id);if(n){n.rd=true;svN();updNdot();openNotif();}}
+
+// ══ EDIT ══
+function opEdit(f){
+  EF=f;
+  const t={name:'Изменить имя',comp:'Изменить компанию',phone:'Изменить телефон',card:'Изменить карту',addcard:'Добавить карту'};
+  document.getElementById('editTit').textContent=t[f]||'Изменить';
+  let h='';
+  if(f==='name')h=`<div class="rgf"><div class="rglbl">Имя и фамилия</div><input class="rginp" id="ei" type="text" value="${U.name}" placeholder="Имя Фамилия"></div>`;
+  else if(f==='comp')h=`<div class="rgf"><div class="rglbl">Компания</div><input class="rginp" id="ei" type="text" value="${U.comp}" placeholder="Название организации"></div>`;
+  else if(f==='phone')h=`<div class="rgf"><div class="rglbl">Телефон</div><div class="phwrap"><span class="phpfx">+998</span><input class="rginp" id="ei" type="tel" value="${U.phone}" style="padding-left:58px" placeholder="90 123 45 67" maxlength="12"></div></div>`;
+  else if(f==='card'&&U.card)h=`<div class="cardmini"><span>•••• •••• •••• ${U.card.replace(/\s/g,'').slice(-4)}</span><small>UZCARD</small></div><div class="rgf" style="margin-top:12px"><div class="rglbl">Новый номер карты</div><input class="rginp" id="ei" type="tel" placeholder="0000 0000 0000 0000" maxlength="19" oninput="fce(this)"></div>`;
+  else h=`<div class="rgf"><div class="rglbl">Номер карты</div><input class="rginp" id="ei" type="tel" placeholder="0000 0000 0000 0000" maxlength="19" oninput="fce(this)"></div><div class="cinrow"><div class="rgf"><div class="rglbl">Срок</div><input class="rginp" type="tel" placeholder="MM/YY" maxlength="5" oninput="fmtExp(this)"></div><div class="rgf"><div class="rglbl">Имя</div><input class="rginp" type="text" placeholder="IVAN IVANOV" style="text-transform:uppercase"></div></div>`;
+  document.getElementById('editBody').innerHTML=h;
+  document.getElementById('editOv').classList.add('show');
+  setTimeout(()=>{const el=document.getElementById('ei');if(el)el.focus();},300);
+}
+function fce(el){let v=el.value.replace(/\D/g,'').substring(0,16);el.value=v.replace(/(.{4})/g,'$1 ').trim();}
+function saveEdit(){
+  const el=document.getElementById('ei');if(!el){closeEdit();return;}
+  const v=el.value.trim();
+  if(EF==='name'&&v.length>=2)U.name=v;
+  else if(EF==='comp'&&v.length>=2)U.comp=v;
+  else if(EF==='phone'&&v.length>=9)U.phone=v;
+  else if((EF==='card'||EF==='addcard')&&v.length>=4)U.card=v;
+  svU();applyUI();closeEdit();
+}
+function closeEdit(){document.getElementById('editOv').classList.remove('show');}
+function actTab(el){el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+</script>
+</body>
+</html>
